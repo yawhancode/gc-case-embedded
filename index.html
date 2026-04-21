@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CaseDesk — Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+
+    body { background: #f5f5f3; height: 100vh; display: flex; flex-direction: column; }
+
+    /* ── Top bar ── */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 20px; background: #fff;
+      border-bottom: 1px solid #e5e5e5;
+    }
+    .logo { font-size: 16px; font-weight: 600; color: #111; }
+    .logo span { color: #185FA5; }
+    .agent { font-size: 13px; color: #666; }
+
+    /* ── Main layout ── */
+    .main { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── Ticket form ── */
+    .ticket-panel {
+      flex: 1; padding: 24px; overflow-y: auto;
+    }
+    h2 { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: #111; }
+    .card {
+      background: #fff; border-radius: 10px;
+      border: 1px solid #e5e5e5; padding: 20px;
+    }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .field { margin-bottom: 14px; }
+    label { display: block; font-size: 12px; color: #666; margin-bottom: 5px; font-weight: 500; }
+    input, select, textarea {
+      width: 100%; padding: 8px 12px; border-radius: 7px;
+      border: 1px solid #ddd; font-size: 13px; color: #111;
+      background: #fafafa; outline: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: #378ADD; box-shadow: 0 0 0 3px rgba(55,138,221,0.12);
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    .actions { display: flex; gap: 10px; margin-top: 6px; }
+    .btn-primary {
+      padding: 8px 20px; background: #185FA5; color: #fff;
+      border: none; border-radius: 7px; font-size: 13px; cursor: pointer;
+    }
+    .btn-primary:hover { background: #0C447C; }
+    .btn-secondary {
+      padding: 8px 14px; background: #fff; color: #555;
+      border: 1px solid #ddd; border-radius: 7px; font-size: 13px; cursor: pointer;
+    }
+    .linked {
+      display: none; margin-top: 12px; padding: 8px 12px;
+      background: #EAF3DE; border-radius: 7px; border: 1px solid #C0DD97;
+      font-size: 12px; color: #27500A;
+    }
+
+    /* ── Genesys iFrame panel ── */
+    .gc-panel {
+      width: 380px; flex-shrink: 0;
+      border-left: 1px solid #e5e5e5;
+      display: flex; flex-direction: column;
+      background: #fff;
+    }
+    .gc-header {
+      padding: 10px 14px; border-bottom: 1px solid #e5e5e5;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .gc-title { font-size: 13px; font-weight: 600; }
+    .gc-title span { color: #E24B4A; }
+    .gc-badge {
+      font-size: 10px; padding: 2px 8px; border-radius: 10px;
+      background: #E6F1FB; color: #185FA5; border: 1px solid #B5D4F4;
+    }
+    .gc-frame { flex: 1; border: none; width: 100%; }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="logo">Case<span>Desk</span></div>
+    <div class="agent">Logged in as: <strong id="agentLabel">Agent</strong></div>
+  </div>
+
+  <div class="main">
+
+    <!-- LEFT: Ticket Form -->
+    <div class="ticket-panel">
+      <h2>New case</h2>
+      <div class="card">
+        <div class="row2">
+          <div class="field">
+            <label>Customer name</label>
+            <input type="text" id="f-name" placeholder="e.g. Ahmad Razif" />
+          </div>
+          <div class="field">
+            <label>Phone number</label>
+            <input type="text" id="f-phone" placeholder="+60123456789" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="text" placeholder="customer@email.com" />
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>Category</label>
+            <select>
+              <option>Technical support</option>
+              <option>Billing</option>
+              <option>General inquiry</option>
+              <option>Complaint</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Priority</label>
+            <select>
+              <option>High</option>
+              <option>Medium</option>
+              <option>Low</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Subject</label>
+          <input type="text" placeholder="Brief description of the issue" />
+        </div>
+        <div class="field">
+          <label>Notes</label>
+          <textarea placeholder="Call notes, details, resolution steps..."></textarea>
+        </div>
+        <div class="linked" id="linked">
+          Genesys interaction linked to this case
+        </div>
+        <div class="actions">
+          <button class="btn-primary" onclick="saveCase()">Save case</button>
+          <button class="btn-secondary" onclick="clearForm()">Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Genesys iFrame -->
+    <div class="gc-panel">
+      <div class="gc-header">
+        <div class="gc-title">Genesys <span>Cloud</span></div>
+        <span class="gc-badge">Live softphone</span>
+      </div>
+      <!-- 
+        CHANGE THIS URL to match your region:
+        AP: https://apps.mypurecloud.com.au/softphone/
+        US: https://apps.mypurecloud.com/softphone/
+        EU: https://apps.mypurecloud.ie/softphone/
+      -->
+      <iframe
+        id="gcFrame"
+        class="gc-frame"
+        src="https://apps.mypurecloud.jp/softphone/"
+        allow="microphone; camera; autoplay; clipboard-write"
+        sandbox="allow-scripts allow-same-origin allow-forms
+                 allow-popups allow-popups-to-escape-sandbox allow-modals">
+      </iframe>
+    </div>
+
+  </div>
+
+  <script>
+    function saveCase() {
+      var name = document.getElementById('f-name').value || 'Unknown customer';
+      document.getElementById('linked').style.display = 'block';
+      alert('Case saved for: ' + name);
+    }
+    function clearForm() {
+      document.getElementById('f-name').value = '';
+      document.getElementById('f-phone').value = '';
+      document.getElementById('linked').style.display = 'none';
+    }
+  </script>
+
+</body>
+</html>
